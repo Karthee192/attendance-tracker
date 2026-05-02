@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Attendance Tracker — Dashboard</title>
+  <style>
+    /* ───────────────────────────────────────────
+       DESIGN TOKENS (color variables)
+    ─────────────────────────────────────────── */
+    :root {
+      --bg:        #0f172a;
+      --surface:   #1e293b;
+      --surface2:  #334155;
+      --primary:   #6366f1;
+      --primary-h: #4f46e5;
+      --success:   #22c55e;
+      --danger:    #ef4444;
+      --warning:   #f59e0b;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --border:    #334155;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ─── HEADER ──────────────────────────────── */
+    .header {
+      height: 58px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .user-email { font-size: 13px; color: var(--muted); }
+
+    /* ─── LAYOUT ──────────────────────────────── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ─── SIDEBAR ─────────────────────────────── */
+    .sidebar {
+      width: 230px;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-label {
+      padding: 18px 16px 10px;
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .course-list { flex: 1; overflow-y: auto; padding: 0 8px 8px; }
+
+    .course-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-bottom: 2px;
+      transition: background 0.15s;
+    }
+    .course-item:hover { background: var(--surface2); }
+    .course-item.active { background: var(--primary); }
+
+    .course-item-code { font-size: 14px; font-weight: 500; }
+
+    .pct-pill {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 20px;
+      background: rgba(255,255,255,0.1);
+    }
+    .pct-pill.good   { background: rgba(34,197,94,0.2);  color: #86efac; }
+    .pct-pill.warn   { background: rgba(245,158,11,0.2); color: #fcd34d; }
+    .pct-pill.bad    { background: rgba(239,68,68,0.2);  color: #fca5a5; }
+
+    .sidebar-footer {
+      padding: 12px 8px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── MAIN CONTENT ────────────────────────── */
+    .main { flex: 1; overflow-y: auto; padding: 28px; }
+
+    /* ─── PAGE HEADING ────────────────────────── */
+    .page-title { font-size: 22px; font-weight: 700; }
+    .page-sub   { font-size: 13px; color: var(--muted); margin-top: 4px; margin-bottom: 24px; }
+
+    /* ─── OVERVIEW GRID ───────────────────────── */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 16px;
+    }
+
+    .course-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px;
+      cursor: pointer;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .course-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+
+    .card-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .card-code { font-size: 17px; font-weight: 700; }
+    .card-name { font-size: 12px; color: var(--muted); margin-top: 3px; }
+
+    .badge {
+      padding: 4px 11px;
+      border-radius: 20px;
+      font-size: 11.5px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge.safe    { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+    .badge.warning { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+    .badge.danger  { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+
+    /* ─── DUAL STAT ROW ───────────────────────── */
+    .dual-stat { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .stat-box {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 14px 12px;
+    }
+
+    .stat-num {
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    .stat-num.good { color: var(--success); }
+    .stat-num.warn { color: var(--warning); }
+    .stat-num.bad  { color: var(--danger);  }
+    .stat-num.none { color: var(--muted);   }
+
+    .stat-lbl  { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .stat-info { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+    .progress-wrap { height: 5px; background: var(--border); border-radius: 3px; margin-top: 8px; }
+    .progress-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+    .progress-fill.good { background: var(--success); }
+    .progress-fill.warn { background: var(--warning); }
+    .progress-fill.bad  { background: var(--danger);  }
+
+    /* ─── COURSE DETAIL ───────────────────────── */
+    .detail-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 22px;
+    }
+
+    .detail-title { font-size: 22px; font-weight: 700; }
+    .detail-sub   { font-size: 13px; color: var(--muted); margin-top: 4px; }
+
+    .detail-actions { display: flex; gap: 10px; flex-shrink: 0; }
+
+    /* ─── INSIGHT BOX ─────────────────────────── */
+    .insight-box {
+      background: var(--surface);
+      border-left: 3px solid var(--primary);
+      border-radius: 0 10px 10px 0;
+      padding: 14px 18px;
+      font-size: 13.5px;
+      color: var(--muted);
+      margin-bottom: 22px;
+      line-height: 1.6;
+    }
+    .insight-box strong { color: var(--text); }
+
+    /* ─── TABLE ───────────────────────────────── */
+    .table-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .table-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-card-title { font-size: 14px; font-weight: 600; }
+    .table-count      { font-size: 12px; color: var(--muted); }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      padding: 11px 16px;
+      text-align: left;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: var(--muted);
+      background: rgba(255,255,255,0.02);
+      border-bottom: 1px solid var(--border);
+    }
+
+    tbody td {
+      padding: 11px 16px;
+      font-size: 13.5px;
+      border-bottom: 1px solid rgba(51,65,85,0.5);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+
+    .chip {
+      display: inline-block;
+      padding: 3px 11px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+    .chip.present { background: rgba(34,197,94,0.12); color: #4ade80; }
+    .chip.absent  { background: rgba(239,68,68,0.12); color: #f87171; }
+
+    /* ─── BUTTONS ─────────────────────────────── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-size: 13.5px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+    }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-h); }
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border: 1px solid var(--border);
+    }
+    .btn-ghost:hover { background: var(--surface2); color: var(--text); }
+    .btn-sm { padding: 7px 14px; font-size: 13px; }
+    .btn-full { width: 100%; justify-content: center; }
+    .btn:disabled { opacity: 0.55; cursor: not-allowed; }
+
+    /* ─── ICON BUTTON (delete) ────────────────── */
+    .icon-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      color: var(--muted);
+      font-size: 15px;
+      padding: 4px 8px;
+      border-radius: 5px;
+      transition: color 0.15s;
+    }
+    .icon-btn:hover { color: var(--danger); }
+
+    /* ─── MODAL ───────────────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(5px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 30px;
+      width: 460px;
+      max-width: 92vw;
+    }
+
+    .modal-title { font-size: 19px; font-weight: 700; margin-bottom: 22px; }
+
+    .form-group { margin-bottom: 16px; }
+
+    .form-label {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 500;
+      color: var(--muted);
+      margin-bottom: 7px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: var(--text);
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus, .form-select:focus { border-color: var(--primary); }
+    .form-select option { background: var(--surface); }
+
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    /* ─── ALERTS ──────────────────────────────── */
+    .alert {
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+    .alert-error {
+      background: rgba(239,68,68,0.1);
+      color: #fca5a5;
+      border: 1px solid rgba(239,68,68,0.2);
+    }
+
+    /* ─── EMPTY STATE ─────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 52px 20px;
+      color: var(--muted);
+    }
+    .empty-icon { font-size: 46px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; margin-bottom: 5px; color: var(--text); }
+    .empty-sub  { font-size: 13px; }
+
+    /* ─── UTILITIES ───────────────────────────── */
+    .hidden { display: none !important; }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--surface2); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: #475569; }
+  </style>
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════
+       HEADER
+  ══════════════════════════════════════════ -->
+  <header class="header">
+    <div class="header-brand">📊 AttendanceTracker</div>
+    <div class="header-right">
+      <span class="user-email" id="userEmail"></span>
+      <button class="btn btn-ghost btn-sm" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════════════════════
+       MAIN LAYOUT
+  ══════════════════════════════════════════ -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-label">My Courses</div>
+      <div class="course-list" id="courseList">
+        <!-- Rendered by JS -->
+      </div>
+      <div class="sidebar-footer">
+        <button class="btn btn-primary btn-sm btn-full" id="addCourseBtn">+ Add Course</button>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <main class="main" id="main">
+
+      <!-- ── OVERVIEW VIEW ── -->
+      <div id="overviewView">
+        <div class="page-title">Dashboard</div>
+        <div class="page-sub">Click on any course to view detailed records and insights.</div>
+        <div id="overviewGrid" class="overview-grid"></div>
+        <div id="overviewEmpty" class="empty-state hidden">
+          <div class="empty-icon">📚</div>
+          <div class="empty-text">No courses added yet</div>
+          <div class="empty-sub">Click "+ Add Course" in the sidebar to get started.</div>
+        </div>
+      </div>
+
+      <!-- ── COURSE DETAIL VIEW ── -->
+      <div id="detailView" class="hidden">
+
+        <div class="detail-header">
+          <div>
+            <div class="detail-title" id="detailTitle"></div>
+            <div class="detail-sub"  id="detailSub"></div>
+          </div>
+          <div class="detail-actions">
+            <button class="btn btn-ghost btn-sm" id="backBtn">← Back</button>
+            <button class="btn btn-primary btn-sm" id="addRecordBtn">+ Add Record</button>
+          </div>
+        </div>
+
+        <!-- Dual Stats -->
+        <div class="dual-stat" style="margin-bottom:18px;">
+          <div class="stat-box">
+            <div class="stat-num" id="sHours">—</div>
+            <div class="stat-lbl">By Total Hours</div>
+            <div class="stat-info" id="sHoursInfo"></div>
+            <div class="progress-wrap">
+              <div class="progress-fill" id="pHours" style="width:0%"></div>
+            </div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-num" id="sLect">—</div>
+            <div class="stat-lbl">By No. of Lectures</div>
+            <div class="stat-info" id="sLectInfo"></div>
+            <div class="progress-wrap">
+              <div class="progress-fill" id="pLect" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insight -->
+        <div class="insight-box" id="insightBox">Add your first record to see attendance insights.</div>
+
+        <!-- Records Table -->
+        <div class="table-card">
+          <div class="table-card-header">
+            <div class="table-card-title">Attendance Records</div>
+            <div class="table-count" id="recCount"></div>
+          </div>
+          <table id="recTable">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Hours</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="recBody"></tbody>
+          </table>
+          <div id="recEmpty" class="empty-state hidden">
+            <div class="empty-icon">📝</div>
+            <div class="empty-text">No records yet</div>
+            <div class="empty-sub">Click "+ Add Record" to log your first attendance entry.</div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Add Course
+  ══════════════════════════════════════════ -->
+  <div class="overlay hidden" id="courseModal">
+    <div class="modal">
+      <div class="modal-title">Add New Course</div>
+      <div id="courseAlert" class="hidden"></div>
+
+      <div class="form-group">
+        <label class="form-label">Course Code *</label>
+        <input type="text" class="form-input" id="fCode" placeholder="e.g., CS101">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Course Name</label>
+        <input type="text" class="form-input" id="fName" placeholder="e.g., Introduction to Programming">
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="cancelCourse">Cancel</button>
+        <button class="btn btn-primary" id="saveCourse">Add Course</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       MODAL: Add Record
+  ══════════════════════════════════════════ -->
+  <div class="overlay hidden" id="recordModal">
+    <div class="modal">
+      <div class="modal-title">Add Attendance Record</div>
+      <div id="recordAlert" class="hidden"></div>
+
+      <div class="form-group">
+        <label class="form-label">Date *</label>
+        <input type="date" class="form-input" id="fDate">
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Lecture Hours</label>
+          <select class="form-select" id="fHours">
+            <option value="1">1 Hour</option>
+            <option value="2">2 Hours</option>
+            <option value="3">3 Hours</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status</label>
+          <select class="form-select" id="fStatus">
+            <option value="present">✅ Present</option>
+            <option value="absent">❌ Absent</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Remarks (optional)</label>
+        <input type="text" class="form-input" id="fRemarks"
+               placeholder='e.g., "Friend signed for me" or "Medical leave"'>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn btn-ghost" id="cancelRecord">Cancel</button>
+        <button class="btn btn-primary" id="saveRecord">Save Record</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+
+  <script>
+  // ════════════════════════════════════════════════════
+  // FIREBASE INIT
+  // ════════════════════════════════════════════════════
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db   = firebase.firestore();
+
+  // ════════════════════════════════════════════════════
+  // APP STATE
+  // ════════════════════════════════════════════════════
+  let currentUser    = null;
+  let currentCourseId = null;
+  let courses        = {};   // courseId → course object
+  let records        = {};   // courseId → [ record, … ]
+
+  // Firestore real-time listener handles (so we can unsubscribe)
+  let unsubCourses = null;
+  let unsubRecords = null;
+
+  // ════════════════════════════════════════════════════
+  // AUTH GUARD — redirect to login if not logged in
+  // ════════════════════════════════════════════════════
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUser = user;
+      document.getElementById('userEmail').textContent = user.email;
+      startListeningToCourses();
+    } else {
+      window.location.href = 'login.html';
+    }
+  });
+
+  // ════════════════════════════════════════════════════
+  // LOGOUT
+  // ════════════════════════════════════════════════════
+  document.getElementById('logoutBtn').addEventListener('click', () => {
+    if (unsubCourses) unsubCourses();
+    if (unsubRecords) unsubRecords();
+    auth.signOut().then(() => { window.location.href = 'login.html'; });
+  });
+
+  // ════════════════════════════════════════════════════
+  // REAL-TIME LISTENER: COURSES
+  // ════════════════════════════════════════════════════
+  function startListeningToCourses() {
+    if (unsubCourses) unsubCourses();
+
+    unsubCourses = db
+      .collection('users').doc(currentUser.uid)
+      .collection('courses')
+      .orderBy('createdAt', 'asc')
+      .onSnapshot(async snapshot => {
+        courses = {};
+        snapshot.forEach(doc => {
+          courses[doc.id] = { id: doc.id, ...doc.data() };
+        });
+
+        // Load records for ALL courses to compute sidebar badges
+        await loadAllRecordsOnce();
+
+        renderSidebar();
+        renderOverview();
+
+        // If we're in detail view, re-render it too
+        if (currentCourseId && courses[currentCourseId]) {
+          renderDetail(currentCourseId);
+        }
+      });
+  }
+
+  // ════════════════════════════════════════════════════
+  // LOAD ALL RECORDS (one-time, for overview stats)
+  // ════════════════════════════════════════════════════
+  async function loadAllRecordsOnce() {
+    const ids = Object.keys(courses);
+    records = {};
+
+    await Promise.all(ids.map(async id => {
+      const snap = await db
+        .collection('users').doc(currentUser.uid)
+        .collection('records')
+        .where('courseId', '==', id)
+        .get();
+
+      records[id] = [];
+      snap.forEach(doc => records[id].push({ id: doc.id, ...doc.data() }));
+      records[id].sort((a, b) => b.date.localeCompare(a.date));
+    }));
+  }
+
+  // ════════════════════════════════════════════════════
+  // REAL-TIME LISTENER: RECORDS (for one selected course)
+  // ════════════════════════════════════════════════════
+  function listenToRecordsFor(courseId) {
+    if (unsubRecords) unsubRecords();
+
+    unsubRecords = db
+      .collection('users').doc(currentUser.uid)
+      .collection('records')
+      .where('courseId', '==', courseId)
+      .onSnapshot(snap => {
+        records[courseId] = [];
+        snap.forEach(doc => records[courseId].push({ id: doc.id, ...doc.data() }));
+        records[courseId].sort((a, b) => b.date.localeCompare(a.date));
+
+        renderDetail(courseId);
+        renderSidebar(); // keep sidebar badges fresh
+      });
+  }
+
+  // ════════════════════════════════════════════════════
+  // ATTENDANCE CALCULATIONS
+  // ════════════════════════════════════════════════════
+  function calcStats(courseId) {
+    const recs = records[courseId] || [];
+
+    let totalHours = 0, presentHours = 0;
+    let totalLect  = 0, presentLect  = 0;
+
+    recs.forEach(r => {
+      const h = parseInt(r.hours, 10);
+      totalHours += h;
+      totalLect  += 1;
+      if (r.status === 'present') {
+        presentHours += h;
+        presentLect  += 1;
+      }
+    });
+
+    const byHours = totalHours > 0
+      ? { pct: (presentHours / totalHours) * 100, attended: presentHours, total: totalHours }
+      : null;
+
+    const byLect = totalLect > 0
+      ? { pct: (presentLect / totalLect) * 100, attended: presentLect, total: totalLect }
+      : null;
+
+    return { byHours, byLect };
+  }
+
+  // Color class based on percentage
+  function clr(pct) {
+    if (pct === null || pct === undefined) return 'none';
+    if (pct >= 80) return 'good';
+    if (pct >= 70) return 'warn';
+    return 'bad';
+  }
+
+  // Status badge (Safe / Warning / At Risk)
+  function statusBadge(pct) {
+    if (pct === null) return '';
+    if (pct >= 80) return `<span class="badge safe">✓ Safe</span>`;
+    if (pct >= 70) return `<span class="badge warning">⚠ Warning</span>`;
+    return `<span class="badge danger">✗ At Risk</span>`;
+  }
+
+  // Build insight message
+  function buildInsight(courseId) {
+    const recs = records[courseId] || [];
+    if (recs.length === 0) return '📝 Add your first record to see attendance insights.';
+
+    let totalH = 0, presentH = 0, totalL = 0, presentL = 0;
+    recs.forEach(r => {
+      const h = parseInt(r.hours, 10);
+      totalH += h; totalL++;
+      if (r.status === 'present') { presentH += h; presentL++; }
+    });
+
+    const hPct = (presentH / totalH) * 100;
+    const lPct = (presentL / totalL) * 100;
+
+    if (hPct >= 80 && lPct >= 80) {
+      // How many hours/lectures can still be missed?
+      // Formula: x ≤ presentX/0.8 − totalX
+      const canMissH = Math.floor(presentH / 0.8 - totalH);
+      const canMissL = Math.floor(presentL / 0.8 - totalL);
+      return `✅ You are <strong>safe on both metrics</strong>! `
+           + `You can still miss up to <strong>${canMissH} lecture hour(s)</strong> `
+           + `or <strong>${canMissL} lecture(s)</strong> without dropping below 80%.`;
+    }
+
+    // How many consecutive lectures needed to reach 80%?
+    // Formula: need x more present hours so (presentH + x)/(totalH + x) ≥ 0.8
+    // → x ≥ (0.8·totalH − presentH) / 0.2
+    const needH = hPct < 80 ? Math.ceil((0.8 * totalH - presentH) / 0.2) : 0;
+    const needL = lPct < 80 ? Math.ceil((0.8 * totalL - presentL) / 0.2) : 0;
+
+    let msg = '⚠️ To reach <strong>80% attendance</strong>: ';
+    const parts = [];
+    if (needH > 0) parts.push(`attend <strong>${needH} more consecutive hour(s)</strong> (by hours metric)`);
+    if (needL > 0) parts.push(`attend <strong>${needL} more consecutive lecture(s)</strong> (by lectures metric)`);
+    return msg + parts.join(' &amp; ') + '.';
+  }
+
+  // ════════════════════════════════════════════════════
+  // RENDER: SIDEBAR
+  // ════════════════════════════════════════════════════
+  function renderSidebar() {
+    const el = document.getElementById('courseList');
+    const list = Object.values(courses);
+
+    if (list.length === 0) {
+      el.innerHTML = `<p style="padding:12px;font-size:12px;color:var(--muted);text-align:center;">No courses yet</p>`;
+      return;
+    }
+
+    el.innerHTML = list.map(c => {
+      const s = calcStats(c.id);
+      const pct = s.byHours ? s.byHours.pct : null;
+      const isActive = currentCourseId === c.id;
+      let pill = '';
+      if (pct !== null) {
+        const pillClass = isActive ? '' : clr(pct);
+        pill = `<span class="pct-pill ${pillClass}">${pct.toFixed(0)}%</span>`;
+      }
+      return `
+        <div class="course-item ${isActive ? 'active' : ''}" onclick="openCourse('${c.id}')">
+          <span class="course-item-code">${esc(c.code)}</span>
+          ${pill}
+        </div>`;
+    }).join('');
+  }
+
+  // ════════════════════════════════════════════════════
+  // RENDER: OVERVIEW
+  // ════════════════════════════════════════════════════
+  function renderOverview() {
+    const grid  = document.getElementById('overviewGrid');
+    const empty = document.getElementById('overviewEmpty');
+    const list  = Object.values(courses);
+
+    if (list.length === 0) {
+      grid.innerHTML = '';
+      empty.classList.remove('hidden');
+      return;
+    }
+    empty.classList.add('hidden');
+
+    grid.innerHTML = list.map(c => {
+      const { byHours, byLect } = calcStats(c.id);
+      const hPct = byHours ? byHours.pct : null;
+      const lPct = byLect  ? byLect.pct  : null;
+      const minPct = (hPct !== null && lPct !== null) ? Math.min(hPct, lPct) : null;
+
+      return `
+        <div class="course-card" onclick="openCourse('${c.id}')">
+          <div class="card-top">
+            <div>
+              <div class="card-code">${esc(c.code)}</div>
+              <div class="card-name">${esc(c.name || 'No name set')}</div>
+            </div>
+            ${statusBadge(minPct)}
+          </div>
+          <div class="dual-stat">
+            <div class="stat-box">
+              <div class="stat-num ${clr(hPct)}">${hPct !== null ? hPct.toFixed(1)+'%' : '—'}</div>
+              <div class="stat-lbl">By Hours</div>
+              <div class="stat-info">${byHours ? byHours.attended+'h / '+byHours.total+'h' : 'No data'}</div>
+              ${hPct !== null ? `<div class="progress-wrap"><div class="progress-fill ${clr(hPct)}" style="width:${Math.min(hPct,100)}%"></div></div>` : ''}
+            </div>
+            <div class="stat-box">
+              <div class="stat-num ${clr(lPct)}">${lPct !== null ? lPct.toFixed(1)+'%' : '—'}</div>
+              <div class="stat-lbl">By Lectures</div>
+              <div class="stat-info">${byLect ? byLect.attended+' / '+byLect.total+' lectures' : 'No data'}</div>
+              ${lPct !== null ? `<div class="progress-wrap"><div class="progress-fill ${clr(lPct)}" style="width:${Math.min(lPct,100)}%"></div></div>` : ''}
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  // ════════════════════════════════════════════════════
+  // OPEN COURSE (switch to detail view)
+  // ════════════════════════════════════════════════════
+  function openCourse(courseId) {
+    currentCourseId = courseId;
+    const c = courses[courseId];
+
+    document.getElementById('overviewView').classList.add('hidden');
+    document.getElementById('detailView').classList.remove('hidden');
+    document.getElementById('detailTitle').textContent = `${c.code} — ${c.name || 'Untitled'}`;
+    document.getElementById('detailSub').textContent = 'Live attendance data';
+
+    renderSidebar();          // highlight active course
+    listenToRecordsFor(courseId);  // start real-time record updates
+  }
+
+  // ════════════════════════════════════════════════════
+  // RENDER: DETAIL VIEW
+  // ════════════════════════════════════════════════════
+  function renderDetail(courseId) {
+    const { byHours, byLect } = calcStats(courseId);
+    const hPct = byHours ? byHours.pct : null;
+    const lPct = byLect  ? byLect.pct  : null;
+
+    // Hours stat
+    document.getElementById('sHours').textContent  = hPct !== null ? hPct.toFixed(1)+'%' : '—';
+    document.getElementById('sHours').className    = `stat-num ${clr(hPct)}`;
+    document.getElementById('sHoursInfo').textContent = byHours
+      ? `${byHours.attended} hrs attended of ${byHours.total} total` : 'No records yet';
+    const ph = document.getElementById('pHours');
+    ph.style.width = hPct !== null ? Math.min(hPct, 100)+'%' : '0%';
+    ph.className = `progress-fill ${clr(hPct)}`;
+
+    // Lectures stat
+    document.getElementById('sLect').textContent   = lPct !== null ? lPct.toFixed(1)+'%' : '—';
+    document.getElementById('sLect').className     = `stat-num ${clr(lPct)}`;
+    document.getElementById('sLectInfo').textContent = byLect
+      ? `${byLect.attended} attended of ${byLect.total} lectures` : 'No records yet';
+    const pl = document.getElementById('pLect');
+    pl.style.width = lPct !== null ? Math.min(lPct, 100)+'%' : '0%';
+    pl.className = `progress-fill ${clr(lPct)}`;
+
+    // Insight
+    document.getElementById('insightBox').innerHTML = buildInsight(courseId);
+
+    // Table
+    const recs = records[courseId] || [];
+    document.getElementById('recCount').textContent = `${recs.length} record${recs.length !== 1 ? 's' : ''}`;
+
+    const tbody = document.getElementById('recBody');
+    const table = document.getElementById('recTable');
+    const empty = document.getElementById('recEmpty');
+
+    if (recs.length === 0) {
+      table.classList.add('hidden');
+      empty.classList.remove('hidden');
+    } else {
+      table.classList.remove('hidden');
+      empty.classList.add('hidden');
+      tbody.innerHTML = recs.map(r => `
+        <tr>
+          <td>${fmtDate(r.date)}</td>
+          <td>${r.hours} hr${r.hours > 1 ? 's' : ''}</td>
+          <td><span class="chip ${r.status}">${r.status === 'present' ? '✅ Present' : '❌ Absent'}</span></td>
+          <td style="color:var(--muted);font-style:${r.remarks ? 'normal' : 'italic'}">
+            ${esc(r.remarks || '—')}
+          </td>
+          <td>
+            <button class="icon-btn" onclick="deleteRecord('${r.id}')" title="Delete this record">🗑</button>
+          </td>
+        </tr>`).join('');
+    }
+  }
+
+  // ════════════════════════════════════════════════════
+  // BACK BUTTON
+  // ════════════════════════════════════════════════════
+  document.getElementById('backBtn').addEventListener('click', () => {
+    currentCourseId = null;
+    if (unsubRecords) { unsubRecords(); unsubRecords = null; }
+    document.getElementById('detailView').classList.add('hidden');
+    document.getElementById('overviewView').classList.remove('hidden');
+    renderSidebar();
+  });
+
+  // ════════════════════════════════════════════════════
+  // ADD COURSE MODAL
+  // ════════════════════════════════════════════════════
+  document.getElementById('addCourseBtn').addEventListener('click', () => {
+    document.getElementById('courseModal').classList.remove('hidden');
+    document.getElementById('fCode').focus();
+  });
+
+  document.getElementById('cancelCourse').addEventListener('click', closeCourseModal);
+  document.getElementById('courseModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('courseModal')) closeCourseModal();
+  });
+
+  function closeCourseModal() {
+    document.getElementById('courseModal').classList.add('hidden');
+    document.getElementById('fCode').value = '';
+    document.getElementById('fName').value = '';
+    document.getElementById('courseAlert').classList.add('hidden');
+  }
+
+  document.getElementById('saveCourse').addEventListener('click', async () => {
+    const code = document.getElementById('fCode').value.trim().toUpperCase();
+    const name = document.getElementById('fName').value.trim();
+    const btn  = document.getElementById('saveCourse');
+    const alertEl = document.getElementById('courseAlert');
+
+    if (!code) { showAlert(alertEl, 'Course code is required.'); return; }
+
+    btn.textContent = 'Adding…'; btn.disabled = true;
+    try {
+      await db.collection('users').doc(currentUser.uid).collection('courses').add({
+        code,
+        name,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      closeCourseModal();
+    } catch (err) {
+      showAlert(alertEl, 'Error: ' + err.message);
+    } finally {
+      btn.textContent = 'Add Course'; btn.disabled = false;
+    }
+  });
+
+  // ════════════════════════════════════════════════════
+  // ADD RECORD MODAL
+  // ════════════════════════════════════════════════════
+  document.getElementById('addRecordBtn').addEventListener('click', () => {
+    // Default to today's date
+    document.getElementById('fDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('recordModal').classList.remove('hidden');
+  });
+
+  document.getElementById('cancelRecord').addEventListener('click', closeRecordModal);
+  document.getElementById('recordModal').addEventListener('click', e => {
+    if (e.target === document.getElementById('recordModal')) closeRecordModal();
+  });
+
+  function closeRecordModal() {
+    document.getElementById('recordModal').classList.add('hidden');
+    document.getElementById('fRemarks').value = '';
+    document.getElementById('recordAlert').classList.add('hidden');
+  }
+
+  document.getElementById('saveRecord').addEventListener('click', async () => {
+    const date    = document.getElementById('fDate').value;
+    const hours   = parseInt(document.getElementById('fHours').value, 10);
+    const status  = document.getElementById('fStatus').value;
+    const remarks = document.getElementById('fRemarks').value.trim();
+    const btn     = document.getElementById('saveRecord');
+    const alertEl = document.getElementById('recordAlert');
+
+    if (!date)           { showAlert(alertEl, 'Please select a date.'); return; }
+    if (!currentCourseId){ showAlert(alertEl, 'No course selected.'); return; }
+
+    btn.textContent = 'Saving…'; btn.disabled = true;
+    try {
+      await db.collection('users').doc(currentUser.uid).collection('records').add({
+        courseId:   currentCourseId,
+        courseCode: courses[currentCourseId].code,
+        date,
+        hours,
+        status,
+        remarks,
+        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+      });
+      closeRecordModal();
+    } catch (err) {
+      showAlert(alertEl, 'Error: ' + err.message);
+    } finally {
+      btn.textContent = 'Save Record'; btn.disabled = false;
+    }
+  });
+
+  // ════════════════════════════════════════════════════
+  // DELETE RECORD
+  // ════════════════════════════════════════════════════
+  async function deleteRecord(recordId) {
+    if (!confirm('Delete this attendance record? This cannot be undone.')) return;
+    try {
+      await db.collection('users').doc(currentUser.uid)
+               .collection('records').doc(recordId).delete();
+    } catch (err) {
+      alert('Could not delete record: ' + err.message);
+    }
+  }
+
+  // ════════════════════════════════════════════════════
+  // UTILITIES
+  // ════════════════════════════════════════════════════
+  function esc(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function fmtDate(d) {
+    if (!d) return '';
+    const [y, m, day] = d.split('-');
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return `${parseInt(day)} ${months[parseInt(m,10)-1]} ${y}`;
+  }
+
+  function showAlert(el, msg) {
+    el.textContent = msg;
+    el.className = 'alert alert-error';
+    el.classList.remove('hidden');
+  }
+  </script>
+</body>
+</html>

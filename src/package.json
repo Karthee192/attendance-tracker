@@ -1,0 +1,16 @@
+{
+  "name": "attendance-tracker",
+  "version": "1.0.0",
+  "description": "Desktop Attendance Tracker built with Electron and Firebase",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron ."
+  },
+  "keywords": ["attendance", "electron", "firebase"],
+  "author": "Your Name Here",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.1.0"
+  }
+}
